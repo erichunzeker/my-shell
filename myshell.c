@@ -4,115 +4,112 @@
 #include <stdlib.h>
 
 
-char *DELIMITERS = " ()<>|&;\n\t";
+char *delim = " ()<>|&;\n\t";
 
 int get_arglength(char* input)
 {
-    char arguments[1024];
+    char arguments[100];
     char* curr;
     int count = 0;
 
     strcpy(arguments, input);
 
-    curr = strtok(arguments, DELIMITERS);
+    curr = strtok(arguments, delim);
+
     while(curr != NULL)
     {
         count = count + 1;
-        curr = strtok(NULL, DELIMITERS);
+        curr = strtok(NULL, delim);
     }
     return count;
 }
 
 int main()
 {
-    char** args_array;
+    char** inputArray;
     char* arg;
-    char input[1024];
-    char token[1024];
-    int pid = 0;
-    int arglength = 0;
-    int status;
-    int count = 0;
+    char input[100];
+    char token[100];
+    int inputSize = 0;
 
     while(1){
-        printf("> ");
-        fgets(input, 1024, stdin);
+        printf("myshell $ ");
 
-        arglength = get_arglength(input);
-        args_array = malloc(sizeof(char*) * (arglength + 1));
+        fgets(input, 100, stdin);
+
+        inputSize = get_arglength(input);
+
+        inputArray = malloc(sizeof(char*) * (inputSize + 1));
 
         strcpy(token, input);
 
-        arg = strtok(token, DELIMITERS);
-        count = 0;
+        arg = strtok(token, delim);
+        int i = 0;
+
         while(arg != NULL)
         {
-            args_array[count] = (char*) malloc(sizeof(char) * strlen(arg));
-            strcpy(args_array[count], arg);
-
-            arg = strtok(NULL, DELIMITERS);
-            count++;
-        }
-        args_array[arglength] = NULL;
-
-        if(args_array[0] == NULL)
-        {
-            continue;
+            inputArray[i] = (char*) malloc(sizeof(char) * strlen(arg));
+            strcpy(inputArray[i], arg);
+            arg = strtok(NULL, delim);
+            i++;
         }
 
-        if(strcmp(args_array[0], "exit") == 0)
-        {
+        inputArray[inputSize] = NULL;
+
+        if(strcmp(inputArray[0], "exit") == 0)
             exit(0);
-        }
 
-        else if(strcmp(args_array[0], "cd") == 0)
+        else if(inputArray[0] == NULL)
+            continue;
+
+
+        else if(strcmp(inputArray[0], "cd") == 0)
         {
-            if(chdir(args_array[1]) == -1)
+            if(chdir(inputArray[1]) == -1)
             {
-                if(args_array[1] == NULL)
-                    printf("cd: : Please specifiy a directory\n");
-                else
-                    printf("cd: %s: No such file or director\n", args_array[1]);
+                if(inputArray[1] == NULL)
+                    inputArray[1] = " ";
+
+                printf("cd: %s: No such file or directory\n", inputArray[1]);
             }
         }
 
         else
         {
-
-            pid = fork();
-
-            if(pid != 0)
-                wait(&status);
-
-            else
+            if(fork() == 0)
             {
-                if(strstr(input, ">>") != NULL)
-                {
-                    freopen(args_array[arglength-1], "a", stdout);
 
-                    free(args_array[arglength-1]);
-                    args_array[arglength-1] = NULL;
+                if(strstr(input, ">") != NULL)
+                {
+                    freopen(inputArray[inputSize-1], "w", stdout);
+                    free(inputArray[inputSize-1]);
+                    inputArray[inputSize-1] = NULL;
                 }
 
-                else if(strstr(input, ">") != NULL)
+                else if(strstr(input, ">>") != NULL)
                 {
-                    freopen(args_array[arglength-1], "w", stdout);
-
-                    free(args_array[arglength-1]);
-                    args_array[arglength-1] = NULL;
+                    freopen(inputArray[inputSize-1], "a", stdout);
+                    free(inputArray[inputSize-1]);
+                    inputArray[inputSize-1] = NULL;
                 }
 
                 else if(strstr(input, "<") != NULL)
                 {
-                    freopen(args_array[arglength-1], "r", stdin);
-
-                    free(args_array[arglength-1]);
-                    args_array[arglength-1] = NULL;
+                    freopen(inputArray[inputSize-1], "r", stdin);
+                    free(inputArray[inputSize-1]);
+                    inputArray[inputSize-1] = NULL;
                 }
 
-                execvp(args_array[0], args_array);
+                execvp(inputArray[0], inputArray);
                 exit(0);
             }
+
+            else {
+                int status;
+                wait(&status);
+            }
+
+
         }
     }
 }
